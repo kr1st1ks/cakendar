@@ -23,4 +23,18 @@ export const Colors = {
     tabIconDefault: '#9BA1A6',
     tabIconSelected: tintColorDark,
   },
+
+  
+};
+
+export const CalendarColors = {
+  backgroundGray: '#262626',
+  onBackground: '#7D7D7D',
+  border: '#2D2D2D',
+  textGray: '#7D7D7D',
+  surface: '#1A1A1A',   // TODO: Выяснить что делают эти параметры
+  onSurface: '#FFFFFF', // TODO: Выяснить что делают эти параметры
+  primary: '#ED5751',
+  onPrimary: '#FFFFFF',
+
 };
