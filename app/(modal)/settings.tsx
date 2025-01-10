@@ -6,7 +6,7 @@ import {
     TouchableHighlight,
     View,
 } from 'react-native';
-import { useAppContext } from '../../context/AppProvider';
+import { useAppContext } from '@/context/AppProvider';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useTheme } from '@react-navigation/native';
 

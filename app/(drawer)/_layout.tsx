@@ -19,14 +19,12 @@ function CustomDrawerContent(props: DrawerContentComponentProps) {
         <DrawerContentScrollView {...props}>
             <DrawerItem label="Day" onPress={() => _onPressItem('day', 1)} />
             <DrawerItem label="3 Days" onPress={() => _onPressItem('week', 3)} />
-            <DrawerItem label="4 Days" onPress={() => _onPressItem('week', 4)} />
             <DrawerItem label="Week" onPress={() => _onPressItem('week', 7)} />
             <DrawerItem label="Work week" onPress={() => _onPressItem('week', 5)} />
             <DrawerItem
                 label="Resources"
                 onPress={() => _onPressItem('resources', 1)}
             />
-            <View style={[styles.line, { backgroundColor: theme.colors.border }]} />
             <View style={[styles.line, { backgroundColor: theme.colors.border }]} />
             <DrawerItem
                 label="Settings"
@@ -40,7 +38,7 @@ function CustomDrawerContent(props: DrawerContentComponentProps) {
 
 const styles = StyleSheet.create({
     line: {
-        height: 1,
+        height: 2,
     },
 });
 

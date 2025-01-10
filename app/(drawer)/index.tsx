@@ -37,7 +37,7 @@ import {
 import { SharedValue, useSharedValue } from 'react-native-reanimated';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Header from '../../components/Header';
-import { useAppContext } from '../../context/AppProvider';
+import { useAppContext } from '@/context/AppProvider';
 import CustomUnavailableHour from '@/components/CustomUnavailableHour';
 
 type SearchParams = { viewMode: string; numberOfDays: string };
@@ -90,9 +90,9 @@ const initialLocales: Record<string, Partial<LocaleConfigsProps>> = {
         weekDayShort: 'Sun_Mon_Tue_Wed_Thu_Fri_Sat'.split('_'),
         meridiem: { ante: 'am', post: 'pm' },
     },
-    ja: {
-        weekDayShort: '日_月_火_水_木_金_土'.split('_'),
-        meridiem: { ante: '午前', post: '午後' },
+    ru: {
+        weekDayShort: 'Пн_Вт_Ср_Чт_Пт_Сб_Вс'.split('_'),
+        meridiem: { ante: 'am', post: 'pm' },
     },
     vi: {
         weekDayShort: 'CN_T2_T3_T4_T5_T6_T7'.split('_'),
@@ -406,11 +406,10 @@ const Calendar = () => {
             hourScroll: true,
         });
     }, []);
-
-    const unavailableHours = useMemo(
+    useMemo(
         () => [
             { start: 0, end: 6 * 60, enableBackgroundInteraction: true },
-            { start: 20 * 60, end: 24 * 60, enableBackgroundInteraction: true },
+            { start: 20 * 60, end: 24 * 60, enableBackgroundInteraction: false },
         ],
         []
     );
@@ -585,7 +584,6 @@ const Calendar = () => {
                 initialDate={INITIAL_DATE}
                 onPressDayNumber={_onPressDayNumber}
                 onPressBackground={_onPressBackground}
-                unavailableHours={unavailableHours}
                 highlightDates={highlightDates}
                 events={events}
                 onPressEvent={(event) => {
