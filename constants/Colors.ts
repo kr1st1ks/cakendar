@@ -38,3 +38,12 @@ export const CalendarColors = {
   onPrimary: '#FFFFFF',
 
 };
+
+export const TAG_COLORS = [
+  '#FF5733',
+  '#33FF57',
+  '#3357FF',
+  '#FF33F6',
+  '#33FFF6',
+  '#FFB533'
+];

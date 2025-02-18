@@ -1,9 +1,12 @@
 import FontAwesome from '@expo/vector-icons/FontAwesome';
+import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
 import { useFonts } from 'expo-font';
 import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import React, { useEffect } from 'react';
+import { useColorScheme } from 'react-native';
 import AppProvider from '../context/AppProvider';
+import { EventsProvider } from '@/context/EventsContext';
 
 export {
   // Catch any errors thrown by the Layout component.
@@ -44,19 +47,25 @@ export default function RootLayout() {
 }
 
 function RootLayoutNav() {
+  const colorScheme = useColorScheme();
+
   return (
-      <AppProvider>
-        <Stack>
-          <Stack.Screen name="(drawer)" options={{ headerShown: false }} />
-          <Stack.Screen
-              name="(modal)"
-              options={{
-                presentation: 'modal',
-                headerShown: false,
-              }}
-          />
-          <Stack.Screen name="+not-found" options={{ headerShown: false }} />
-        </Stack>
-      </AppProvider>
+    <EventsProvider>
+      <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
+        <AppProvider>
+          <Stack>
+            <Stack.Screen name="(drawer)" options={{ headerShown: false }} />
+            <Stack.Screen
+                name="(modal)"
+                options={{
+                  presentation: 'modal',
+                  headerShown: false,
+                }}
+            />
+            <Stack.Screen name="+not-found" options={{ headerShown: false }} />
+          </Stack>
+        </AppProvider>
+      </ThemeProvider>
+    </EventsProvider>
   );
 }

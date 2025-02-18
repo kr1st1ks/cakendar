@@ -1,64 +1,36 @@
-import { Ionicons } from '@expo/vector-icons';
-import type {
+import {
     CalendarKitHandle,
     DateOrDateTime,
-    DraggingEventProps,
-    EventItem,
-    HeaderItemProps,
+    EventItem as CalendarEventItem,
     LocaleConfigsProps,
-    ResourceItem,
-    SelectedEventType,
-    UnavailableHourProps,
 } from '@howljs/calendar-kit';
 import {
     CalendarBody,
     CalendarContainer,
     CalendarHeader,
-    DraggingEvent,
-    parseDateTime,
-    ResourceHeaderItem,
 } from '@howljs/calendar-kit';
-import { useLocalSearchParams, useRouter } from 'expo-router';
-import type { WeekdayNumbers } from 'luxon';
-import React, {
-    useCallback,
-    useEffect,
-    useMemo,
-    useRef,
-    useState,
-} from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import {
-    Dimensions,
-    StyleSheet,
-    Text,
-    useColorScheme,
     View,
+    StyleSheet,
+    Dimensions,
+    useColorScheme,
+    TouchableOpacity,
+    Platform,
 } from 'react-native';
-import { SharedValue, useSharedValue } from 'react-native-reanimated';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import Header from '../../components/Header';
-import { useAppContext } from '@/context/AppProvider';
-import CustomUnavailableHour from '@/components/CustomUnavailableHour';
+import { useSharedValue } from "react-native-reanimated";
+import { useLocalSearchParams } from "expo-router";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { Ionicons } from "@expo/vector-icons";
+import { useEvents } from '@/context/EventsContext';
+import { EventCreateModal } from '@/components/EventCreateModal';
+import { DateTime } from 'luxon';
 
 type SearchParams = { viewMode: string; numberOfDays: string };
 
-const MIN_DATE = new Date(
-    new Date().getFullYear() - 2,
-    new Date().getMonth(),
-    new Date().getDate()
-).toISOString();
-
-const MAX_DATE = new Date(
-    new Date().getFullYear() + 2,
-    new Date().getMonth(),
-    new Date().getDate()
-).toISOString();
-
-const INITIAL_DATE = new Date(
-    new Date().getFullYear(),
-    new Date().getMonth(),
-    new Date().getDate()
-).toISOString();
+const MIN_DATE = DateTime.now().minus({ years: 2 }).startOf('day').toISO();
+const MAX_DATE = DateTime.now().plus({ years: 2 }).startOf('day').toISO();
+const INITIAL_DATE = DateTime.now().startOf('day').toISO();
 
 const CALENDAR_THEME = {
     light: {
@@ -86,637 +58,125 @@ const CALENDAR_THEME = {
 };
 
 const initialLocales: Record<string, Partial<LocaleConfigsProps>> = {
-    en: {
-        weekDayShort: 'Sun_Mon_Tue_Wed_Thu_Fri_Sat'.split('_'),
-        meridiem: { ante: 'am', post: 'pm' },
-    },
     ru: {
         weekDayShort: 'Пн_Вт_Ср_Чт_Пт_Сб_Вс'.split('_'),
         meridiem: { ante: 'am', post: 'pm' },
     },
-    vi: {
-        weekDayShort: 'CN_T2_T3_T4_T5_T6_T7'.split('_'),
-        meridiem: { ante: 'sa', post: 'ch' },
-    },
 };
 
-const randomColor = () => {
-    const letters = '0123456789ABCDEF';
-    let color = '#';
-    for (let i = 0; i < 6; i++) {
-        color += letters[Math.floor(Math.random() * 16)];
-    }
-    return color;
-};
-
-const minDate = new Date(
-    new Date().getFullYear(),
-    new Date().getMonth() - 4,
-    new Date().getDate()
-);
-
-const allDayEvents: EventItem[] = [
-    {
-        id: 'event_0',
-        start: {
-            date: '2024-09-14',
-        },
-        end: {
-            date: '2024-09-24',
-        },
-        title: 'Event 0',
-        color: '#5428F2',
-    },
-    {
-        id: 'event_0x',
-        start: {
-            dateTime: '2024-09-16T22:00:00.000+07:00',
-        },
-        end: {
-            dateTime: '2024-09-22T23:00:00.000+07:00',
-        },
-        title: 'Event 0x',
-        color: '#5428F2',
-    },
-    {
-        id: 'event_1',
-        start: {
-            dateTime: '2024-09-16T22:00:00.000+07:00',
-        },
-        end: {
-            dateTime: '2024-09-18T22:00:00.000+07:00',
-        },
-        title: 'Event 1',
-        color: '#5428F2',
-    },
-    {
-        id: 'event_1x',
-        start: {
-            dateTime: '2024-09-16T00:00:00.000+07:00',
-        },
-        end: {
-            dateTime: '2024-09-19T00:00:00.000+07:00',
-        },
-        title: 'Event 1x',
-        color: '#5428F2',
-    },
-    {
-        id: 'event_2',
-        start: {
-            dateTime: '2024-09-21T00:00:00.000+07:00',
-        },
-        end: {
-            dateTime: '2024-09-22T00:00:00.000+07:00',
-        },
-        title: 'Event 2',
-        color: '#8EBB85',
-    },
-    {
-        id: 'event_2x',
-        start: {
-            date: '2024-09-18',
-        },
-        end: {
-            date: '2024-09-21',
-        },
-        title: 'Event 2x',
-        color: '#5428F2',
-    },
-    {
-        id: 'event_3c',
-        start: {
-            date: '2024-09-16',
-        },
-        end: {
-            date: '2024-09-16',
-        },
-        title: 'Event 3',
-        color: '#B70100',
-    },
-    {
-        id: 'event_3xx',
-        start: {
-            dateTime: '2024-09-16T22:00:00.000+07:00',
-        },
-        end: {
-            dateTime: '2024-09-17T22:00:00.000+07:00',
-        },
-        title: 'Event 3xx',
-        color: '#5428F2',
-    },
-    {
-        id: 'event_3x',
-        start: {
-            dateTime: '2024-09-16T15:00:00.000+07:00',
-        },
-        end: {
-            dateTime: '2024-09-17T23:00:00.000+07:00',
-        },
-        title: 'Event 3x',
-        color: '#5428F2',
-    },
-    {
-        id: 'event_4',
-        start: {
-            dateTime: '2024-09-20T17:00:00.000Z',
-        },
-        end: {
-            dateTime: '2024-09-21T17:00:00.000Z',
-        },
-        title: 'Event 4',
-        color: '#B70100',
-    },
-    {
-        id: 'event_5',
-        start: {
-            dateTime: '2024-09-19T17:00:00.000Z',
-        },
-        end: {
-            dateTime: '2024-09-21T17:00:00.000Z',
-        },
-        title: 'Event 5',
-        color: '#EAAB7E',
-    },
-    {
-        id: 'event_6',
-        start: {
-            dateTime: '2024-09-17T17:00:00.000Z',
-        },
-        end: {
-            dateTime: '2024-09-18T17:00:00.000Z',
-        },
-        title: 'Event 6x',
-        color: '#AC2A57',
-    },
-    {
-        id: 'event_7',
-        start: {
-            dateTime: '2024-09-20T17:00:00.000Z',
-        },
-        end: {
-            dateTime: '2024-09-21T17:00:00.000Z',
-        },
-        title: 'Event 7',
-        color: '#DC1F98',
-    },
-    {
-        id: 'event_8',
-        start: {
-            dateTime: '2024-09-19T17:00:00.000Z',
-        },
-        end: {
-            dateTime: '2024-09-21T17:00:00.000Z',
-        },
-        title: 'Event 8',
-        color: '#6E911C',
-    },
-    {
-        id: 'event_9',
-        start: {
-            dateTime: '2024-09-20T17:00:00.000Z',
-        },
-        end: {
-            dateTime: '2024-09-22T17:00:00.000Z',
-        },
-        title: 'Event 9',
-        color: '#BE1459',
-    },
-    {
-        id: 'event_10',
-        start: {
-            dateTime: '2024-09-19T17:00:00.000Z',
-        },
-        end: {
-            dateTime: '2024-09-21T17:00:00.000Z',
-        },
-        title: 'Event 10',
-        color: '#BA3D9D',
-    },
-    {
-        id: 'event_11',
-        start: {
-            dateTime: '2024-09-20T00:00:00.000+07:00',
-        },
-        end: {
-            dateTime: '2024-09-26T00:00:00.000+07:00',
-        },
-        title: 'Event 11',
-        color: '#BA3D9D',
-    },
-    {
-        id: 'event_2xx3',
-        start: {
-            date: '2024-09-16',
-        },
-        end: {
-            date: '2024-09-17',
-        },
-        title: 'All day Recurring',
-        color: '#BA3D9D',
-        recurrence: 'FREQ=WEEKLY;INTERVAL=1;BYDAY=MO,WE,TH,FR',
-        excludeDates: ['2024-09-16', '2024-09-22'],
-    },
-    {
-        id: 'event_26',
-        start: {
-            dateTime: '2024-09-16T05:00:00.000Z',
-        },
-        end: {
-            dateTime: '2024-09-16T07:00:00.000Z',
-        },
-        title: 'Event Recurring',
-        color: '#BA3D9D',
-        recurrence: 'FREQ=WEEKLY;INTERVAL=1;BYDAY=MO,WE,TH,FR',
-        excludeDates: [
-            '2024-09-16T05:00:00.000Z',
-            '2024-09-22T05:00:00.000Z',
-            '2024-10-11T05:00:00.000Z',
-        ],
-    },
-];
-
-const TOTAL_RESOURCES = 3;
-
-const generateEvents = () => {
-    return new Array(500)
-        .fill(0)
-        .map((_, index) => {
-            const randomDateByIndex = new Date(
-                minDate.getFullYear(),
-                minDate.getMonth(),
-                minDate.getDate() + Math.floor(index / 2),
-                Math.floor(Math.random() * 24),
-                Math.round((Math.random() * 60) / 15) * 15
-            );
-            const duration = (Math.floor(Math.random() * 15) + 1) * 15 * 60 * 1000;
-            const endDate = new Date(randomDateByIndex.getTime() + duration);
-
-            return {
-                id: `event_${index + 1}`,
-                start: {
-                    dateTime: randomDateByIndex.toISOString(),
-                },
-                end: {
-                    dateTime: endDate.toISOString(),
-                },
-                title: `Event ${index + 1}`,
-                color: randomColor(),
-                resourceId: `resource_${Math.floor(Math.random() * TOTAL_RESOURCES) + 1}`,
-            } as EventItem;
-        })
-        .concat(allDayEvents);
-};
-
-const Calendar = () => {
-    const [events, setEvents] = useState<EventItem[]>(() => generateEvents());
-    const { bottom: safeBottom } = useSafeAreaInsets();
+export default function CalendarScreen() {
+    const { events, addEvent } = useEvents();
+    const { top: safeTop, bottom: safeBottom } = useSafeAreaInsets();
+    const [selectedDate, setSelectedDate] = useState<Date | undefined>();
+    const [isCreateModalVisible, setCreateModalVisible] = useState(false);
     const colorScheme = useColorScheme();
-    const calendarRef = useRef<CalendarKitHandle>(null);
-    const { configs } = useAppContext();
-    const params = useLocalSearchParams<SearchParams>();
-    const router = useRouter();
     const currentDate = useSharedValue(INITIAL_DATE);
-    const [selectedEvent, setSelectedEvent] = useState<SelectedEventType>();
-    const [calendarWidth, setCalendarWidth] = useState(
-        Dimensions.get('window').width
-    );
+    const params = useLocalSearchParams<SearchParams>();
+    const calendarRef = useRef<CalendarKitHandle>(null);
+    const [calendarWidth, setCalendarWidth] = useState(Dimensions.get('window').width);
 
-    const isResourcesMode = params.viewMode === 'resources';
+    // Transform events to calendar format
+    const calendarEvents = events.map(event => ({
+        id: event.id,
+        startAt: event.startAt,
+        endAt: event.endAt,
+        title: event.title,
+        color: event.color,
+        summary: event.description,
+    }));
 
-    useEffect(() => {
-        const subscription = Dimensions.addEventListener('change', ({ window }) => {
-            setCalendarWidth(window.width);
-        });
-        return () => subscription?.remove();
-    }, []);
-
-    const _onChange = (date: string) => {
-        currentDate.value = date;
+    const handleAddEvent = async (eventData: Omit<Event, 'id'>) => {
+        await addEvent(eventData);
+        setCreateModalVisible(false);
     };
 
-    const _onPressDayNumber = (date: string) => {
-        calendarRef.current?.setVisibleDate(date);
-        router.setParams({ viewMode: 'day', numberOfDays: '1' });
+    const handleDateSelect = (date: string) => {
+        setSelectedDate(DateTime.fromISO(date).toJSDate());
+        setCreateModalVisible(true);
     };
 
-    const _onPressToday = useCallback(() => {
-        calendarRef.current?.goToDate({
-            date: new Date().toISOString(),
-            animatedDate: true,
-            hourScroll: true,
-        });
-    }, []);
-    useMemo(
-        () => [
-            { start: 0, end: 6 * 60, enableBackgroundInteraction: true },
-            { start: 20 * 60, end: 24 * 60, enableBackgroundInteraction: false },
-        ],
-        []
-    );
-    const highlightDates = useMemo(
-        () => ({
-            '6': { dayNumber: { color: 'blue' }, dayName: { color: 'blue' } },
-            '7': { dayNumber: { color: 'red' }, dayName: { color: 'red' } },
-        }),
-        []
-    );
-
-    const _onPressBackground = (props: DateOrDateTime) => {
-        // if (selectedEvent) {
-        //   const startISO = new Date(date).toISOString();
-        //   const duration =
-        //     new Date(selectedEvent.end).getTime() -
-        //     new Date(selectedEvent.start).getTime();
-        //   const end = new Date(date).getTime() + duration;
-        //   const endISO = new Date(end).toISOString();
-        //   const newEvent = { ...selectedEvent, start: startISO, end: endISO };
-        //   if (newEvent.id) {
-        //     let newEvents = events.filter((item) => item.id !== newEvent.id);
-        //     newEvents.push({ ...newEvent, id: newEvent.id });
-        //     setEvents(newEvents);
-        //   }
-        //   setSelectedEvent(newEvent);
-        // }
-        if (props.date) {
-            console.log(new Date(props.date).toISOString());
-        }
-        if (props.dateTime) {
-            console.log(new Date(props.dateTime).toISOString());
-        }
-        setSelectedEvent(undefined);
-    };
-
-    const isWorkWeek = params.viewMode === 'week' && params.numberOfDays === '5';
-    const hideWeekDays: WeekdayNumbers[] = isWorkWeek ? [6, 7] : [];
-
-    const onPressPrevious = () => {
-        calendarRef.current?.goToPrevPage();
-    };
-
-    const onPressNext = () => {
-        calendarRef.current?.goToNextPage();
-    };
-
-    const resources = useMemo(() => {
-        return new Array(TOTAL_RESOURCES).fill(0).map((_, index) => {
-            return {
-                id: `resource_${index + 1}`,
-                title: `Resource ${index + 1}`,
-            };
-        });
-    }, []);
-
-    const _renderResource = useCallback((resource: ResourceItem) => {
-        return (
-            <View style={styles.resourceContainer}>
-                <Ionicons name="person-circle-outline" size={24} color="black" />
-                <Text>{resource.title}</Text>
-            </View>
-        );
-    }, []);
-
-    const _renderResourceHeaderItem = useCallback(
-        (item: HeaderItemProps) => {
-            const start = parseDateTime(item.startUnix);
-            const dateStr = start.toFormat('yyyy-MM-dd');
-
-            return (
-                <ResourceHeaderItem
-                    startUnix={item.startUnix}
-                    resources={item.extra.resources}
-                    renderResource={_renderResource}
-                    DateComponent={
-                        <View style={styles.dateContainer}>
-                            <Text style={{ fontSize: 16, fontWeight: 'bold' }}>
-                                {dateStr}
-                            </Text>
-                        </View>
-                    }
-                />
-            );
-        },
-        [_renderResource]
-    );
-
-    const _renderCustomHorizontalLine = useCallback(
-        (props: { index: number; borderColor: string }) => {
-            // Check if index is a whole number (not 0.5, 1.5, etc)
-            const isWholeNumber = Number.isInteger(props.index);
-            if (isWholeNumber) {
-                return (
-                    <View
-                        pointerEvents="none"
-                        style={{
-                            height: 1,
-                            backgroundColor: props.borderColor,
-                        }}
-                    />
-                );
-            }
-
-            return (
-                <View
-                    pointerEvents="none"
-                    style={{
-                        height: 1,
-                        borderWidth: 1,
-                        borderColor: props.borderColor,
-                        borderStyle: 'dashed',
-                    }}
-                />
-            );
-        },
-        []
-    );
-
-    const _renderCustomUnavailableHour = useCallback(
-        (
-            props: UnavailableHourProps & {
-                width: SharedValue<number>;
-                height: SharedValue<number>;
-            }
-        ) => {
-            return <CustomUnavailableHour {...props} />;
-        },
-        []
-    );
-
-    const _renderDraggingEvent = useCallback((props: DraggingEventProps) => {
-        return (
-            <DraggingEvent
-                {...props}
-                containerStyle={{ backgroundColor: '#1a73e8', opacity: 0.5 }}
-            />
-        );
-    }, []);
+    const theme = CALENDAR_THEME[colorScheme ?? 'light'];
 
     return (
-        <View style={styles.container}>
-            <Header
-                currentDate={currentDate}
-                onPressToday={_onPressToday}
-                onPressPrevious={onPressPrevious}
-                onPressNext={onPressNext}
-            />
-            <CalendarContainer
-                ref={calendarRef}
-                calendarWidth={calendarWidth}
-                numberOfDays={Number(params.numberOfDays)}
-                scrollByDay={Number(params.numberOfDays) < 5}
-                firstDay={isWorkWeek ? 1 : configs.startOfWeek}
-                hideWeekDays={hideWeekDays}
-                initialLocales={initialLocales}
-                locale="en"
-                minRegularEventMinutes={5}
-                theme={
-                    configs.themeMode === 'auto'
-                        ? colorScheme === 'dark'
-                            ? CALENDAR_THEME.dark
-                            : CALENDAR_THEME.light
-                        : CALENDAR_THEME[configs.themeMode]
-                }
-                showWeekNumber={configs.showWeekNumber}
-                allowPinchToZoom
-                onChange={_onChange}
-                onDateChanged={console.log}
-                minDate={MIN_DATE}
-                maxDate={MAX_DATE}
-                initialDate={INITIAL_DATE}
-                onPressDayNumber={_onPressDayNumber}
-                onPressBackground={_onPressBackground}
-                highlightDates={highlightDates}
-                events={events}
-                onPressEvent={(event) => {
-                    console.log(event);
-                }}
-                dragToCreateMode={configs.dragToCreateMode}
-                scrollToNow
-                useHaptic
-                allowDragToEdit
-                allowDragToCreate
-                useAllDayEvent
-                rightEdgeSpacing={4}
-                overlapEventsSpacing={1}
-                onLongPressEvent={(event) => {
-                    if (event.id !== selectedEvent?.id) {
-                        setSelectedEvent(undefined);
-                    }
-                }}
-                onDragCreateEventStart={() => {
-                    setSelectedEvent(undefined);
-                }}
-                selectedEvent={selectedEvent}
-                start={60}
-                end={23 * 60}
-                spaceFromBottom={safeBottom}
-                defaultDuration={60}
-                onDragEventEnd={async (event) => {
-                    console.log('onDragEventEnd', event);
-
-                    const { originalRecurringEvent, ...rest } = event;
-                    if (event.id) {
-                        const filteredEvents = events.filter(
-                            (item) =>
-                                item.id !== event.id && item.id !== originalRecurringEvent?.id
-                        );
-                        if (originalRecurringEvent) {
-                            filteredEvents.push(originalRecurringEvent);
-                        }
-                        const newEvent = { ...rest, id: event.id };
-                        filteredEvents.push(newEvent);
-                        setEvents(filteredEvents);
-                    }
-
-                    setSelectedEvent(event);
-                    await new Promise((resolve) => {
-                        setTimeout(() => {
-                            resolve(true);
-                        }, 100);
-                    });
-                }}
-                onDragSelectedEventEnd={async (event) => {
-                    console.log('onDragSelectedEventEnd', event);
-                    const { originalRecurringEvent, ...rest } = event;
-                    if (event.id) {
-                        const filteredEvents = events.filter(
-                            (item) =>
-                                item.id !== event.id && item.id !== originalRecurringEvent?.id
-                        );
-                        if (originalRecurringEvent) {
-                            filteredEvents.push(originalRecurringEvent);
-                        }
-                        filteredEvents.push(rest as EventItem);
-                        setEvents(filteredEvents);
-                    }
-
-                    setSelectedEvent(event);
-                    await new Promise((resolve) => {
-                        setTimeout(() => {
-                            resolve(true);
-                        }, 100);
-                    });
-                }}
-                resources={isResourcesMode ? resources : undefined}
-                onDragCreateEventEnd={(event) => {
-                    console.log('onDragCreateEventEnd', event);
-                    const newEvent = {
-                        ...event,
-                        id: `event_${events.length + 1}`,
-                        title: `Event ${events.length + 1}`,
-                        color: '#23cfde',
-                        resourceId:
-                            event.resourceId ||
-                            `resource_${Math.floor(Math.random() * TOTAL_RESOURCES) + 1}`,
-                    };
-                    const newEvents = [...events, newEvent];
-                    setEvents(newEvents);
-                    setSelectedEvent(newEvent);
-                }}>
+        <View style={[styles.container, { paddingTop: safeTop }]}>
+            <CalendarContainer>
                 <CalendarHeader
-                    dayBarHeight={isResourcesMode ? 120 : 60}
-                    renderHeaderItem={
-                        isResourcesMode ? _renderResourceHeaderItem : undefined
-                    }
+                    theme={theme}
                 />
                 <CalendarBody
-                    renderCustomHorizontalLine={_renderCustomHorizontalLine}
-                    renderCustomUnavailableHour={_renderCustomUnavailableHour}
-                    renderDraggingEvent={
-                        configs.dragToCreateMode === 'duration'
-                            ? undefined
-                            : _renderDraggingEvent
-                    }
+                    events={calendarEvents}
+                    onPressDate={handleDateSelect}
+                    theme={theme}
+                    minDate={MIN_DATE}
+                    maxDate={MAX_DATE}
+                    viewMode={params.viewMode as any || 'week'}
+                    locale="ru"
+                    locales={initialLocales}
+                    width={calendarWidth}
+                    isShowHalfLine
+                    dragStep={30}
+                    heightByContent={false}
+                    showAllDayEvents
                 />
             </CalendarContainer>
+
+            <EventCreateModal
+                isVisible={isCreateModalVisible}
+                selectedDate={selectedDate}
+                onClose={() => setCreateModalVisible(false)}
+                onAddEvent={handleAddEvent}
+            />
+
+            <TouchableOpacity
+                style={[
+                    styles.fab,
+                    {
+                        bottom: safeBottom + 16,
+                        backgroundColor: theme.colors.primary,
+                    }
+                ]}
+                onPress={() => {
+                    setSelectedDate(new Date());
+                    setCreateModalVisible(true);
+                }}
+            >
+                <Ionicons name="add" size={24} color={theme.colors.onPrimary} />
+            </TouchableOpacity>
         </View>
     );
-};
-
-export default Calendar;
+}
 
 const styles = StyleSheet.create({
-    container: { flex: 1 },
-    actions: { flexDirection: 'row', gap: 10, padding: 10 },
-    btn: {
-        paddingHorizontal: 10,
-        paddingVertical: 5,
-        backgroundColor: '#23cfde',
+    container: {
+        flex: 1,
+        backgroundColor: '#fff',
     },
-    header: {
-        backgroundColor: 'white',
-        padding: 16,
-    },
-    date: { fontSize: 16, fontWeight: 'bold' },
-    resourceContainer: {
+    fab: {
+        position: 'absolute',
+        right: 16,
+        width: 56,
+        height: 56,
+        borderRadius: 28,
         justifyContent: 'center',
         alignItems: 'center',
-        flex: 1,
-        gap: 8,
-    },
-    dateContainer: {
-        alignItems: 'center',
-        borderBottomWidth: 1,
-        borderBottomColor: '#ccc',
-        paddingVertical: 8,
+        elevation: 4,
+        shadowColor: '#000',
+        shadowOffset: {
+            width: 0,
+            height: 2,
+        },
+        shadowOpacity: 0.25,
+        shadowRadius: 3.84,
+        ...Platform.select({
+            ios: {
+                shadowColor: '#000',
+                shadowOffset: { width: 0, height: 2 },
+                shadowOpacity: 0.25,
+                shadowRadius: 3.84,
+            },
+            android: {
+                elevation: 5,
+            },
+        }),
     },
 });
