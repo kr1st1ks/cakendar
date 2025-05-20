@@ -10,9 +10,9 @@ import {
 } from 'react-native';
 import {Calendar} from 'react-native-calendars';
 import {useRouter} from 'expo-router';
-import {useEvents} from '@/context/EventContext';
-import {useSettings} from "@/context/SettingsContext";
-import FAB from '@/components/FAB'
+import {useEvents} from '../../contexts/EventContext';
+import {useSettings} from "../../contexts/SettingsContext";
+import FAB from '../../components/FAB'
 
 // Определяем тип события (расширенный)
 export type Event = {

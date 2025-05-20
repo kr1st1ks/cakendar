@@ -2,8 +2,9 @@
 import React from 'react';
 import {Drawer} from 'expo-router/drawer';
 import {Redirect} from 'expo-router';
-import {useAuth} from '@/context/AuthContext';
+import {useAuth} from '../../contexts/AuthContext';
 import DrawerContent from './DrawerContent';
+import {EventProvider} from "../../contexts/EventContext";
 
 export default function ProtectedLayout() {
     const {user, isLoading} = useAuth();
@@ -11,11 +12,11 @@ export default function ProtectedLayout() {
     if (isLoading) return null; // можно заменить на спиннер
 
     if (!user) {
-        return <Redirect href="/auth/login"/>;
+        return <Redirect href="/(auth)/login"/>;
     }
 
     return (
-        <>
+        <EventProvider>
             <Drawer
                 screenOptions={{headerShown: true}}
                 drawerContent={(props) => <DrawerContent {...props} />}
@@ -24,6 +25,6 @@ export default function ProtectedLayout() {
                 <Drawer.Screen name="dayView" options={{title: 'День'}}/>
                 <Drawer.Screen name="event-list" options={{title: 'Список событий'}}/>
             </Drawer>
-        </>
+        </EventProvider>
     );
 }

@@ -1,4 +1,4 @@
-// File: context/EventsContext.tsx
+// File: contexts/EventsContext.tsx
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
@@ -33,7 +33,7 @@ export const useEvents = () => {
     return ctx;
 };
 
-export const EventsProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+export const EventProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     // Начальный список событий, загружаемый из AsyncStorage
     const [events, setEvents] = useState<Event[]>([]);
 

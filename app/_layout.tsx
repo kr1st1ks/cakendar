@@ -1,14 +1,16 @@
-// File: app/_layout.tsx
-import React from 'react';
-import { Slot } from 'expo-router';
-import { AuthProvider } from '@/context/AuthContext';
-import { StatusBar } from 'expo-status-bar';
+import { Slot } from "expo-router";
+import { AuthProvider } from '../contexts/AuthContext';
+import { EventProvider } from "../contexts/EventContext";
+import { SettingsProvider } from "../contexts/SettingsContext"; // если есть
 
 export default function RootLayout() {
-  return (
-    <AuthProvider>
-      <StatusBar style="dark" />
-      <Slot />
-    </AuthProvider>
-  );
+    return (
+        <AuthProvider>
+            <EventProvider>
+                <SettingsProvider>
+                    <Slot />
+                </SettingsProvider>
+            </EventProvider>
+        </AuthProvider>
+    );
 }

@@ -1,4 +1,4 @@
-// File: context/AuthContext.tsx
+// File: contexts/AuthContext.tsx
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import * as WebBrowser from 'expo-web-browser';
 import * as Google from 'expo-auth-session/providers/google';
@@ -6,7 +6,7 @@ import * as AppleAuthentication from 'expo-apple-authentication';
 import { Platform } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { getAuth, onAuthStateChanged, signInWithEmailAndPassword, createUserWithEmailAndPassword } from 'firebase/auth';
-import { auth } from '@/firebase/firebaseConfig';
+import { auth } from '../firebase/firebaseConfig';
 
 WebBrowser.maybeCompleteAuthSession();
 
