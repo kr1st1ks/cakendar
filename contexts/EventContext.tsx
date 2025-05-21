@@ -1,12 +1,13 @@
-import React, { createContext, useContext, useEffect, useState } from 'react';
+// contexts/EventContext.tsx
+
+import React, { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { collection, addDoc, updateDoc, deleteDoc, doc, onSnapshot, query, where } from 'firebase/firestore';
+import { collection, query, where, onSnapshot, addDoc, updateDoc, doc, deleteDoc } from 'firebase/firestore';
 import { db } from '../firebase/firebaseConfig';
 import { useAuth } from './AuthContext';
 
-// Тип события с обязательным userId
 export type Event = {
-    id?: string;
+    id: string;
     title: string;
     description: string;
     startDate: string;
@@ -19,100 +20,104 @@ export type Event = {
     userId: string;
 };
 
-type EventsContextType = {
+type EventContextType = {
     events: Event[];
-    addEvent: (event: Omit<Event, 'id' | 'userId'>) => Promise<void>;
+    addEvent: (event: Event) => Promise<void>;
     updateEvent: (event: Event) => Promise<void>;
-    deleteEvent: (eventId: string) => Promise<void>;
+    deleteEvent: (id: string) => Promise<void>;
 };
 
-const EventsContext = createContext<EventsContextType | undefined>(undefined);
+const EventContext = createContext<EventContextType | undefined>(undefined);
 
-// Хук для доступа к событиям
 export const useEvents = () => {
-    const ctx = useContext(EventsContext);
+    const ctx = useContext(EventContext);
     if (!ctx) throw new Error('useEvents must be used within EventProvider');
     return ctx;
 };
 
-const STORAGE_KEY = 'events';
-
-export const EventProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+export const EventProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
     const [events, setEvents] = useState<Event[]>([]);
     const { user } = useAuth();
 
-    // Подписка на события только текущего пользователя
+    // Подписка на Firestore события текущего пользователя
     useEffect(() => {
-        let unsubscribe: (() => void) | undefined;
-        if (user?.uid) {
-            const q = query(collection(db, 'events'), where('userId', '==', user.uid));
-            unsubscribe = onSnapshot(
-                q,
-                (snapshot) => {
-                    const userEvents: Event[] = [];
-                    snapshot.forEach((docSnap) => {
-                        const data = docSnap.data() as Omit<Event, 'id'>;
-                        // Гарантируем userId всегда присвоен
-                        userEvents.push({ id: docSnap.id, ...data, userId: data.userId });
+        if (!user?.uid) {
+            setEvents([]);
+            return;
+        }
+        const q = query(collection(db, 'events'), where('userId', '==', user.uid));
+        const unsub = onSnapshot(
+            q,
+            (snapshot) => {
+                const list: Event[] = [];
+                snapshot.forEach((docSnap) => {
+                    const data = docSnap.data();
+                    list.push({
+                        id: docSnap.id,
+                        title: data.title,
+                        description: data.description,
+                        startDate: data.startDate,
+                        endDate: data.endDate,
+                        allDay: data.allDay,
+                        startTime: data.startTime,
+                        endTime: data.endTime,
+                        tag: data.tag,
+                        color: data.color,
+                        userId: data.userId,
                     });
-                    setEvents(userEvents);
-                    AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(userEvents)).catch((err) =>
-                        console.error('Ошибка сохранения событий в AsyncStorage:', err)
-                    );
-                },
-                (error) => {
-                    console.error('Ошибка подписки на события:', error);
-                }
-            );
-        } else {
-            AsyncStorage.getItem(STORAGE_KEY)
-                .then((stored) => {
-                    if (stored) setEvents(JSON.parse(stored));
-                })
-                .catch((err) => {
-                    console.error('Ошибка загрузки событий из AsyncStorage:', err);
                 });
-        }
-        return () => {
-            if (unsubscribe) unsubscribe();
+                setEvents(list);
+                AsyncStorage.setItem('events', JSON.stringify(list)).catch(() => {});
+            },
+            (err) => {
+                setEvents([]);
+            }
+        );
+        return () => unsub();
+    }, [user?.uid]);
+
+    // CRUD-методы
+
+    const addEvent = async (event: Event) => {
+        if (!user?.uid) throw new Error('Нет пользователя');
+        // Убираем id (Firestore создаёт свой id)
+        const data = {
+            ...event,
+            id: undefined,
+            userId: user.uid,
+            tag: event.tag || '',
+            color: event.color || '#007AFF',
+            endDate: event.endDate || event.startDate,
+            startTime: event.allDay ? undefined : event.startTime,
+            endTime: event.allDay ? undefined : event.endTime,
         };
-    }, [user]);
-
-
-    // Добавление события
-    function removeUndefinedFields<T extends object>(obj: T): T {
-        return Object.fromEntries(Object.entries(obj).filter(([_, v]) => v !== undefined)) as T;
-    }
-
-    const addEvent = async (event: Omit<Event, 'id' | 'userId'>) => {
-        if (!user?.uid) return;
-        const newEvent = removeUndefinedFields({ ...event, userId: user.uid });
-        await addDoc(collection(db, 'events'), newEvent);
+        // Firestore не любит undefined
+        const firestoreData: any = {};
+        Object.keys(data).forEach((k) => {
+            if (typeof data[k] !== 'undefined') firestoreData[k] = data[k];
+        });
+        await addDoc(collection(db, 'events'), firestoreData);
     };
 
-    // Обновление события
     const updateEvent = async (event: Event) => {
-        if (!user?.uid || !event.id) return;
-        try {
-            await updateDoc(doc(db, 'events', event.id), { ...event, userId: user.uid });
-        } catch (err) {
-            console.error('Ошибка обновления события:', err);
-        }
+        if (!user?.uid) throw new Error('Нет пользователя');
+        const eventRef = doc(db, 'events', event.id);
+        // Firestore не любит undefined
+        const firestoreData: any = {};
+        Object.keys(event).forEach((k) => {
+            if (typeof event[k] !== 'undefined') firestoreData[k] = event[k];
+        });
+        await updateDoc(eventRef, firestoreData);
     };
 
-    // Удаление события
-    const deleteEvent = async (eventId: string) => {
-        if (!user?.uid || !eventId) return;
-        try {
-            await deleteDoc(doc(db, 'events', eventId));
-        } catch (err) {
-            console.error('Ошибка удаления события:', err);
-        }
+    const deleteEvent = async (id: string) => {
+        if (!user?.uid) throw new Error('Нет пользователя');
+        await deleteDoc(doc(db, 'events', id));
     };
 
     return (
-        <EventsContext.Provider value={{ events, addEvent, updateEvent, deleteEvent }}>
+        <EventContext.Provider value={{ events, addEvent, updateEvent, deleteEvent }}>
             {children}
-        </EventsContext.Provider>
+        </EventContext.Provider>
     );
 };

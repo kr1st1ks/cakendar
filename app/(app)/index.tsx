@@ -1,18 +1,20 @@
 // File: app/(app)/index.tsx
-import React, {useState, useEffect} from 'react';
+import React, { useState, useEffect } from 'react';
 import {
     View,
     Text,
     FlatList,
     TouchableOpacity,
     StyleSheet,
-    Alert, SafeAreaView,
+    Alert,
+    SafeAreaView,
 } from 'react-native';
-import {Calendar} from 'react-native-calendars';
-import {useRouter} from 'expo-router';
-import {EventProvider, useEvents} from '../../contexts/EventContext';
-import {useSettings} from "../../contexts/SettingsContext";
-import FAB from '../../components/FAB'
+import { Calendar } from 'react-native-calendars';
+import { useRouter } from 'expo-router';
+import { useEvents } from '../../contexts/EventContext';
+import { useSettings } from "../../contexts/SettingsContext";
+import { useAuth } from '../../contexts/AuthContext'; // добавь если нужно
+import FAB from '../../components/FAB';
 
 // Определяем тип события (расширенный)
 export type Event = {
@@ -26,6 +28,7 @@ export type Event = {
     endTime?: string;    // Если событие не на весь день, время окончания
     tag?: string;        // Тег события
     color?: string;      // Цвет метки (например, '#007AFF')
+    userId?: string;     // Для идентификации пользователя
 };
 
 // Функция для получения всех дат в диапазоне от start до end (включительно)
@@ -40,11 +43,11 @@ const getDatesInRange = (start: string, end: string): string[] => {
     return dates;
 };
 
-
 export default function CalendarScreen() {
     const router = useRouter();
-    const {events, deleteEvent} = useEvents();
-    const {showWeekNumbers} = useSettings();
+    const { events, deleteEvent } = useEvents();
+    const { showWeekNumbers } = useSettings();
+    const { user } = useAuth();
 
     // Выбранная дата (по умолчанию — сегодня)
     const [selectedDate, setSelectedDate] = useState<string>(
@@ -58,7 +61,12 @@ export default function CalendarScreen() {
     useEffect(() => {
         const marks: any = {};
 
-        events.forEach((event) => {
+        // ! Оставляем только события текущего пользователя
+        const filteredEvents = user
+            ? events.filter(e => e.userId === user.uid)
+            : [];
+
+        filteredEvents.forEach((event) => {
             const color = event.color || '#007AFF';
             // Если многодневное событие: если endDate существует и отличается от startDate
             if (event.endDate && event.startDate !== event.endDate) {
@@ -73,7 +81,7 @@ export default function CalendarScreen() {
                     if (marks[date]) {
                         marks[date].periods.push(period);
                     } else {
-                        marks[date] = {periods: [period]};
+                        marks[date] = { periods: [period] };
                     }
                 });
             } else {
@@ -87,7 +95,7 @@ export default function CalendarScreen() {
                 if (marks[event.startDate]) {
                     marks[event.startDate].periods.push(period);
                 } else {
-                    marks[event.startDate] = {periods: [period]};
+                    marks[event.startDate] = { periods: [period] };
                 }
             }
         });
@@ -107,16 +115,19 @@ export default function CalendarScreen() {
         }
 
         setMarkedDates(marks);
-    }, [events, selectedDate]);
+    }, [events, selectedDate, user]);
 
     // Фильтрация событий для выбранной даты.
     // Для многодневных событий: если выбранная дата входит в диапазон.
-    const eventsForDate = events.filter((event) => {
-        if (!event.endDate || event.startDate === event.endDate) {
-            return event.startDate === selectedDate;
-        }
-        return selectedDate >= event.startDate && selectedDate <= event.endDate;
-    });
+    const eventsForDate = user
+        ? events.filter((event) => {
+            if (event.userId !== user.uid) return false;
+            if (!event.endDate || event.startDate === event.endDate) {
+                return event.startDate === selectedDate;
+            }
+            return selectedDate >= event.startDate && selectedDate <= event.endDate;
+        })
+        : [];
 
     // При нажатии на событие показываем алерт со списком всех событий на выбранную дату.
     const handleEventPress = () => {
@@ -124,7 +135,7 @@ export default function CalendarScreen() {
         const list = eventsForDate
             .map(
                 (evt) =>
-                    `${evt.title} ${evt.allDay ? '(Весь день)' : `(${evt.startTime} - ${evt.endTime})`}`
+                    `${evt.title} ${evt.allDay ? '(Весь день)' : `(${evt.startTime || ''} - ${evt.endTime || ''})`}`
             )
             .join('\n');
         Alert.alert(`События на ${selectedDate}`, list);
@@ -133,72 +144,68 @@ export default function CalendarScreen() {
     // Обработчик удаления события (при долгом нажатии)
     const handleDeleteEvent = (id: string) => {
         Alert.alert('Удалить событие', 'Вы уверены, что хотите удалить это событие?', [
-            {text: 'Отмена', style: 'cancel'},
-            {text: 'Удалить', style: 'destructive', onPress: () => deleteEvent({id} as Event)},
+            { text: 'Отмена', style: 'cancel' },
+            { text: 'Удалить', style: 'destructive', onPress: () => deleteEvent(id) },
         ]);
     };
 
     return (
-        <EventProvider>
-            <SafeAreaView style={styles.container}>
-                {/* Календарь с Multi-Period marking */}
-                <Calendar
-                    current={selectedDate}
-                    onDayPress={(day: { dateString: string }) => setSelectedDate(day.dateString)}
-                    markedDates={markedDates}
-                    showWeekNumbers={showWeekNumbers}
-                    markingType="multi-period"
-                    theme={{
-                        backgroundColor: '#fff',
-                        calendarBackground: '#fff',
-                        textSectionTitleColor: '#007AFF',
-                        selectedDayBackgroundColor: '#007AFF',
-                        selectedDayTextColor: '#fff',
-                        todayTextColor: '#007AFF',
-                        dayTextColor: '#000',
-                        textDisabledColor: '#d9e1e8',
-                        dotColor: '#007AFF',
-                        selectedDotColor: '#fff',
-                        arrowColor: '#007AFF',
-                        monthTextColor: '#007AFF',
-                        textDayFontWeight: '300',
-                        textMonthFontWeight: 'bold',
-                        textDayHeaderFontWeight: '300',
-                        textDayFontSize: 16,
-                        textMonthFontSize: 20,
-                        textDayHeaderFontSize: 14,
-                    }}
-                />
+        <SafeAreaView style={styles.container}>
+            {/* Календарь с Multi-Period marking */}
+            <Calendar
+                current={selectedDate}
+                onDayPress={(day: { dateString: string }) => setSelectedDate(day.dateString)}
+                markedDates={markedDates}
+                showWeekNumbers={showWeekNumbers}
+                markingType="multi-period"
+                theme={{
+                    backgroundColor: '#fff',
+                    calendarBackground: '#fff',
+                    textSectionTitleColor: '#007AFF',
+                    selectedDayBackgroundColor: '#007AFF',
+                    selectedDayTextColor: '#fff',
+                    todayTextColor: '#007AFF',
+                    dayTextColor: '#000',
+                    textDisabledColor: '#d9e1e8',
+                    dotColor: '#007AFF',
+                    selectedDotColor: '#fff',
+                    arrowColor: '#007AFF',
+                    monthTextColor: '#007AFF',
+                    textDayFontWeight: '300',
+                    textMonthFontWeight: 'bold',
+                    textDayHeaderFontWeight: '300',
+                    textDayFontSize: 16,
+                    textMonthFontSize: 20,
+                    textDayHeaderFontSize: 14,
+                }}
+            />
 
-                {/* Секция списка событий */}
-                <View style={styles.eventsContainer}>
-                    <Text style={styles.eventsHeader}>События на {selectedDate}</Text>
-                    {eventsForDate.length === 0 ? (
-                        <Text style={styles.noEventsText}>Нет событий на эту дату</Text>
-                    ) : (
-                        <FlatList
-                            data={eventsForDate}
-                            keyExtractor={(item) => item.id}
-                            renderItem={({item}) => (
-                                <TouchableOpacity
-                                    style={[styles.eventItem, {borderLeftColor: item.color || '#007AFF'}]}
-                                    onPress={() => router.push(`/(app)/event-form/${item.id}`)}
-                                    onLongPress={() => handleDeleteEvent(item.id)}
-                                >
-                                    <Text style={styles.eventTitle}>{item.title}</Text>
-                                    <Text style={styles.eventTime}>
-                                        {item.allDay ? 'Весь день' : `${item.startTime} - ${item.endTime}`}
-                                    </Text>
-                                </TouchableOpacity>
-                            )}
-                        />
-                    )}
-                </View>
-                <FAB onPress={() => router.push(`/(app)/event-form`)}/>
-            </SafeAreaView>
-
-        </EventProvider>
-
+            {/* Секция списка событий */}
+            <View style={styles.eventsContainer}>
+                <Text style={styles.eventsHeader}>События на {selectedDate}</Text>
+                {eventsForDate.length === 0 ? (
+                    <Text style={styles.noEventsText}>Нет событий на эту дату</Text>
+                ) : (
+                    <FlatList
+                        data={eventsForDate}
+                        keyExtractor={(item) => item.id}
+                        renderItem={({ item }) => (
+                            <TouchableOpacity
+                                style={[styles.eventItem, { borderLeftColor: item.color || '#007AFF' }]}
+                                onPress={() => router.push(`/(app)/event-form/${item.id}`)}
+                                onLongPress={() => handleDeleteEvent(item.id)}
+                            >
+                                <Text style={styles.eventTitle}>{item.title}</Text>
+                                <Text style={styles.eventTime}>
+                                    {item.allDay ? 'Весь день' : `${item.startTime || ''} - ${item.endTime || ''}`}
+                                </Text>
+                            </TouchableOpacity>
+                        )}
+                    />
+                )}
+            </View>
+            <FAB onPress={() => router.push(`/(app)/event-form/new`)} />
+        </SafeAreaView>
     );
 }
 

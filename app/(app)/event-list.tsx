@@ -12,7 +12,7 @@ export default function EventListScreen() {
     const handleDeleteEvent = (id: string) => {
         Alert.alert('Удалить событие', 'Вы уверены, что хотите удалить это событие?', [
             {text: 'Отмена', style: 'cancel'},
-            {text: 'Удалить', style: 'destructive', onPress: () => deleteEvent({id} as Event)},
+            {text: 'Удалить', style: 'destructive', onPress: () => deleteEvent(id)},
         ]);
     };
 
@@ -38,7 +38,7 @@ export default function EventListScreen() {
                     )}
                 />
             )}
-            <FAB/>
+            <FAB onPress={() => router.push('/event-form')}/>
         </View>
     );
 }
