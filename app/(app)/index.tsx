@@ -10,7 +10,7 @@ import {
 } from 'react-native';
 import {Calendar} from 'react-native-calendars';
 import {useRouter} from 'expo-router';
-import {useEvents} from '../../contexts/EventContext';
+import {EventProvider, useEvents} from '../../contexts/EventContext';
 import {useSettings} from "../../contexts/SettingsContext";
 import FAB from '../../components/FAB'
 
@@ -139,62 +139,66 @@ export default function CalendarScreen() {
     };
 
     return (
-        <SafeAreaView style={styles.container}>
-            {/* Календарь с Multi-Period marking */}
-            <Calendar
-                current={selectedDate}
-                onDayPress={(day: { dateString: string }) => setSelectedDate(day.dateString)}
-                markedDates={markedDates}
-                showWeekNumbers={showWeekNumbers}
-                markingType="multi-period"
-                theme={{
-                    backgroundColor: '#fff',
-                    calendarBackground: '#fff',
-                    textSectionTitleColor: '#007AFF',
-                    selectedDayBackgroundColor: '#007AFF',
-                    selectedDayTextColor: '#fff',
-                    todayTextColor: '#007AFF',
-                    dayTextColor: '#000',
-                    textDisabledColor: '#d9e1e8',
-                    dotColor: '#007AFF',
-                    selectedDotColor: '#fff',
-                    arrowColor: '#007AFF',
-                    monthTextColor: '#007AFF',
-                    textDayFontWeight: '300',
-                    textMonthFontWeight: 'bold',
-                    textDayHeaderFontWeight: '300',
-                    textDayFontSize: 16,
-                    textMonthFontSize: 20,
-                    textDayHeaderFontSize: 14,
-                }}
-            />
+        <EventProvider>
+            <SafeAreaView style={styles.container}>
+                {/* Календарь с Multi-Period marking */}
+                <Calendar
+                    current={selectedDate}
+                    onDayPress={(day: { dateString: string }) => setSelectedDate(day.dateString)}
+                    markedDates={markedDates}
+                    showWeekNumbers={showWeekNumbers}
+                    markingType="multi-period"
+                    theme={{
+                        backgroundColor: '#fff',
+                        calendarBackground: '#fff',
+                        textSectionTitleColor: '#007AFF',
+                        selectedDayBackgroundColor: '#007AFF',
+                        selectedDayTextColor: '#fff',
+                        todayTextColor: '#007AFF',
+                        dayTextColor: '#000',
+                        textDisabledColor: '#d9e1e8',
+                        dotColor: '#007AFF',
+                        selectedDotColor: '#fff',
+                        arrowColor: '#007AFF',
+                        monthTextColor: '#007AFF',
+                        textDayFontWeight: '300',
+                        textMonthFontWeight: 'bold',
+                        textDayHeaderFontWeight: '300',
+                        textDayFontSize: 16,
+                        textMonthFontSize: 20,
+                        textDayHeaderFontSize: 14,
+                    }}
+                />
 
-            {/* Секция списка событий */}
-            <View style={styles.eventsContainer}>
-                <Text style={styles.eventsHeader}>События на {selectedDate}</Text>
-                {eventsForDate.length === 0 ? (
-                    <Text style={styles.noEventsText}>Нет событий на эту дату</Text>
-                ) : (
-                    <FlatList
-                        data={eventsForDate}
-                        keyExtractor={(item) => item.id}
-                        renderItem={({item}) => (
-                            <TouchableOpacity
-                                style={[styles.eventItem, {borderLeftColor: item.color || '#007AFF'}]}
-                                onPress={() => router.push(`/(app)/event-form/${item.id}`)}
-                                onLongPress={() => handleDeleteEvent(item.id)}
-                            >
-                                <Text style={styles.eventTitle}>{item.title}</Text>
-                                <Text style={styles.eventTime}>
-                                    {item.allDay ? 'Весь день' : `${item.startTime} - ${item.endTime}`}
-                                </Text>
-                            </TouchableOpacity>
-                        )}
-                    />
-                )}
-            </View>
-            <FAB/>
-        </SafeAreaView>
+                {/* Секция списка событий */}
+                <View style={styles.eventsContainer}>
+                    <Text style={styles.eventsHeader}>События на {selectedDate}</Text>
+                    {eventsForDate.length === 0 ? (
+                        <Text style={styles.noEventsText}>Нет событий на эту дату</Text>
+                    ) : (
+                        <FlatList
+                            data={eventsForDate}
+                            keyExtractor={(item) => item.id}
+                            renderItem={({item}) => (
+                                <TouchableOpacity
+                                    style={[styles.eventItem, {borderLeftColor: item.color || '#007AFF'}]}
+                                    onPress={() => router.push(`/(app)/event-form/${item.id}`)}
+                                    onLongPress={() => handleDeleteEvent(item.id)}
+                                >
+                                    <Text style={styles.eventTitle}>{item.title}</Text>
+                                    <Text style={styles.eventTime}>
+                                        {item.allDay ? 'Весь день' : `${item.startTime} - ${item.endTime}`}
+                                    </Text>
+                                </TouchableOpacity>
+                            )}
+                        />
+                    )}
+                </View>
+                <FAB onPress={() => router.push(`/(app)/event-form`)}/>
+            </SafeAreaView>
+
+        </EventProvider>
+
     );
 }
 

@@ -1,11 +1,11 @@
-// types/index.ts
 export interface CalendarEvent {
     id: string;
     title: string;
     description: string;
-    startTime: string; // ISO-строка или формат YYYY-MM-DD для событий на весь день
-    endTime: string;   // ISO-строка или формат YYYY-MM-DD для событий на весь день
+    startTime: string;
+    endTime: string;
     tag: string;
     color: string;
     allDay: boolean;
+    userId: string; // добавь это поле!
 }

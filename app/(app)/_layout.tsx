@@ -22,7 +22,6 @@ export default function ProtectedLayout() {
                 drawerContent={(props) => <DrawerContent {...props} />}
             >
                 <Drawer.Screen name="index" options={{title: 'Месяц'}}/>
-                <Drawer.Screen name="dayView" options={{title: 'День'}}/>
                 <Drawer.Screen name="event-list" options={{title: 'Список событий'}}/>
             </Drawer>
         </EventProvider>

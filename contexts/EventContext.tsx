@@ -1,99 +1,117 @@
-// File: contexts/EventsContext.tsx
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useEffect, useState } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { collection, addDoc, updateDoc, deleteDoc, doc, onSnapshot, query, where } from 'firebase/firestore';
+import { db } from '../firebase/firebaseConfig';
+import { useAuth } from './AuthContext';
 
-// Определяем тип события с расширенными полями
+// Тип события с обязательным userId
 export type Event = {
-    id: string;
+    id?: string;
     title: string;
     description: string;
-    startDate: string;          // Дата начала события в формате 'YYYY-MM-DD'
-    endDate?: string;           // Дата окончания (если событие длится более одного дня)
-    allDay: boolean;            // Флаг: событие на весь день
-    startTime?: string;         // Время начала (если событие не на весь день)
-    endTime?: string;           // Время окончания (если событие не на весь день)
-    tag?: string;               // Тег события (например, 'Работа', 'Личное' и т.д.)
-    color?: string;             // Цвет метки (например, '#007AFF')
+    startDate: string;
+    endDate?: string;
+    allDay: boolean;
+    startTime?: string;
+    endTime?: string;
+    tag?: string;
+    color?: string;
+    userId: string;
 };
 
 type EventsContextType = {
     events: Event[];
-    addEvent: (event: Event) => void;
-    updateEvent: (updatedEvent: Event) => void;
-    deleteEvent: (eventToDelete: Event) => void;
+    addEvent: (event: Omit<Event, 'id' | 'userId'>) => Promise<void>;
+    updateEvent: (event: Event) => Promise<void>;
+    deleteEvent: (eventId: string) => Promise<void>;
 };
 
 const EventsContext = createContext<EventsContextType | undefined>(undefined);
 
+// Хук для доступа к событиям
 export const useEvents = () => {
     const ctx = useContext(EventsContext);
-    if (!ctx) {
-        throw new Error('useEvents must be used within EventsProvider');
-    }
+    if (!ctx) throw new Error('useEvents must be used within EventProvider');
     return ctx;
 };
 
+const STORAGE_KEY = 'events';
+
 export const EventProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-    // Начальный список событий, загружаемый из AsyncStorage
     const [events, setEvents] = useState<Event[]>([]);
+    const { user } = useAuth();
 
-    // Ключ для AsyncStorage
-    const STORAGE_KEY = 'events';
+    // Подписка на события только текущего пользователя
+    useEffect(() => {
+        let unsubscribe: (() => void) | undefined;
+        if (user?.uid) {
+            const q = query(collection(db, 'events'), where('userId', '==', user.uid));
+            unsubscribe = onSnapshot(
+                q,
+                (snapshot) => {
+                    const userEvents: Event[] = [];
+                    snapshot.forEach((docSnap) => {
+                        const data = docSnap.data() as Omit<Event, 'id'>;
+                        // Гарантируем userId всегда присвоен
+                        userEvents.push({ id: docSnap.id, ...data, userId: data.userId });
+                    });
+                    setEvents(userEvents);
+                    AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(userEvents)).catch((err) =>
+                        console.error('Ошибка сохранения событий в AsyncStorage:', err)
+                    );
+                },
+                (error) => {
+                    console.error('Ошибка подписки на события:', error);
+                }
+            );
+        } else {
+            AsyncStorage.getItem(STORAGE_KEY)
+                .then((stored) => {
+                    if (stored) setEvents(JSON.parse(stored));
+                })
+                .catch((err) => {
+                    console.error('Ошибка загрузки событий из AsyncStorage:', err);
+                });
+        }
+        return () => {
+            if (unsubscribe) unsubscribe();
+        };
+    }, [user]);
 
-    // Функция загрузки событий из AsyncStorage
-    const loadEvents = async () => {
+
+    // Добавление события
+    function removeUndefinedFields<T extends object>(obj: T): T {
+        return Object.fromEntries(Object.entries(obj).filter(([_, v]) => v !== undefined)) as T;
+    }
+
+    const addEvent = async (event: Omit<Event, 'id' | 'userId'>) => {
+        if (!user?.uid) return;
+        const newEvent = removeUndefinedFields({ ...event, userId: user.uid });
+        await addDoc(collection(db, 'events'), newEvent);
+    };
+
+    // Обновление события
+    const updateEvent = async (event: Event) => {
+        if (!user?.uid || !event.id) return;
         try {
-            const storedEvents = await AsyncStorage.getItem(STORAGE_KEY);
-            if (storedEvents) {
-                setEvents(JSON.parse(storedEvents));
-            }
-        } catch (error) {
-            console.error('Ошибка загрузки событий из AsyncStorage:', error);
+            await updateDoc(doc(db, 'events', event.id), { ...event, userId: user.uid });
+        } catch (err) {
+            console.error('Ошибка обновления события:', err);
         }
     };
 
-    // Функция сохранения событий в AsyncStorage
-    const saveEvents = async (eventsToSave: Event[]) => {
+    // Удаление события
+    const deleteEvent = async (eventId: string) => {
+        if (!user?.uid || !eventId) return;
         try {
-            await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(eventsToSave));
-        } catch (error) {
-            console.error('Ошибка сохранения событий в AsyncStorage:', error);
+            await deleteDoc(doc(db, 'events', eventId));
+        } catch (err) {
+            console.error('Ошибка удаления события:', err);
         }
     };
-
-    // При монтировании загружаем события из AsyncStorage
-    useEffect(() => {
-        loadEvents();
-    }, []);
-
-    // При каждом изменении списка событий сохраняем их в AsyncStorage
-    useEffect(() => {
-        saveEvents(events);
-    }, [events]);
-
-    // Функция добавления нового события в список
-    const addEvent = (event: Event) => {
-        setEvents((prev) => [...prev, event]);
-    };
-
-    // Функция обновления события:
-    // Ищет событие по id и заменяет его обновлённым объектом
-    const updateEvent = (updatedEvent: Event) => {
-        setEvents((prev) =>
-            prev.map((event) => (event.id === updatedEvent.id ? updatedEvent : event))
-        );
-    };
-
-    // Функция удаления события:
-    // Удаляет событие с заданным id из списка
-    const deleteEvent = (eventToDelete: Event) => {
-        setEvents((prev) => prev.filter((event) => event.id !== eventToDelete.id));
-    };
-
-    const value: EventsContextType = { events, addEvent, updateEvent, deleteEvent };
 
     return (
-        <EventsContext.Provider value={value}>
+        <EventsContext.Provider value={{ events, addEvent, updateEvent, deleteEvent }}>
             {children}
         </EventsContext.Provider>
     );

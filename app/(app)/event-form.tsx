@@ -15,7 +15,7 @@ import {
 } from 'react-native';
 import DateTimePickerModal from 'react-native-modal-datetime-picker';
 import { useRouter, useGlobalSearchParams } from 'expo-router';
-import { useEvents, Event } from '@/context/EventContext';
+import { useEvents, Event } from '../../contexts/EventContext';
 
 export default function EventFormScreen() {
     const router = useRouter();
