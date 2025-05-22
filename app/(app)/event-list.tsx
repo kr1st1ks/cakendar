@@ -1,6 +1,6 @@
 // File: app/(app)/event-list.tsx
 import React from 'react';
-import {View, Text, FlatList, TouchableOpacity, StyleSheet, Alert} from 'react-native';
+import {View, Text, FlatList, TouchableOpacity, StyleSheet, Alert, SafeAreaView, StatusBar} from 'react-native';
 import {useEvents} from '../../contexts/EventContext';
 import {useRouter} from 'expo-router';
 import {Event} from "./index";
@@ -18,28 +18,34 @@ export default function EventListScreen() {
 
     // @ts-ignore
     return (
-        <View style={styles.container}>
-            <Text style={styles.header}>Общий список событий</Text>
-            {events.length === 0 ? (
-                <Text style={styles.noEventsText}>Событий пока нет</Text>
-            ) : (
-                <FlatList
-                    data={events}
-                    keyExtractor={(item) => item.id}
-                    renderItem={({item}) => (
-                        <TouchableOpacity style={styles.eventItem}
-                                          onPress={() => router.push(`/event-form/${item.id}`)}
-                                          onLongPress={() => handleDeleteEvent(item.id)}
-                        >
-                            <Text style={styles.eventTitle}>{item.title}</Text>
-                            <Text
-                                style={styles.eventDates}>{item.startDate} {item.endDate ? `- ${item.endDate}` : ''}</Text>
-                        </TouchableOpacity>
-                    )}
-                />
-            )}
-            <FAB onPress={() => router.push('/event-form')}/>
-        </View>
+
+        <SafeAreaView style={styles.container}>
+            <StatusBar barStyle="dark-content" />
+            <View >
+                <Text style={styles.header}>Общий список событий</Text>
+                {events.length === 0 ? (
+                    <Text style={styles.noEventsText}>Событий пока нет</Text>
+                ) : (
+                    <FlatList
+                        data={events}
+                        keyExtractor={(item) => item.id}
+                        renderItem={({item}) => (
+                            <TouchableOpacity style={styles.eventItem}
+                                              onPress={() => router.push(`/event-form/${item.id}`)}
+                                              onLongPress={() => handleDeleteEvent(item.id)}
+                            >
+                                <Text style={styles.eventTitle}>{item.title}</Text>
+                                <Text
+                                    style={styles.eventDates}>{item.startDate} {item.endDate ? `- ${item.endDate}` : ''}</Text>
+                            </TouchableOpacity>
+                        )}
+                    />
+                )}
+
+            </View>
+
+            <FAB onPress={() => router.push(`/(app)/event-form/new`)}/>
+        </SafeAreaView>
     );
 }
 

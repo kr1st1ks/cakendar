@@ -7,7 +7,7 @@ import {
     TouchableOpacity,
     StyleSheet,
     Alert,
-    SafeAreaView,
+    SafeAreaView, StatusBar,
 } from 'react-native';
 import { Calendar } from 'react-native-calendars';
 import { useRouter } from 'expo-router';
@@ -151,6 +151,7 @@ export default function CalendarScreen() {
 
     return (
         <SafeAreaView style={styles.container}>
+            <StatusBar barStyle="dark-content" />
             {/* Календарь с Multi-Period marking */}
             <Calendar
                 current={selectedDate}

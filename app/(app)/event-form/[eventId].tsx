@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import {
-    View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, ScrollView
+    View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, ScrollView, SafeAreaView
 } from 'react-native';
 import DateTimePickerModal from 'react-native-modal-datetime-picker';
 import { useRouter, useLocalSearchParams } from 'expo-router';
@@ -92,7 +92,7 @@ export default function EventFormScreen() {
             Alert.alert('Ошибка', 'Дата окончания не может быть раньше даты начала');
             return;
         }
-        if (!allDay && startDateTime >= endDateTime) {
+        if (!allDay && startDateTime > endDateTime) {
             Alert.alert('Ошибка', 'Время окончания должно быть позже времени начала');
             return;
         }
@@ -140,100 +140,107 @@ export default function EventFormScreen() {
     };
 
     return (
-        <ScrollView style={styles.container}>
-            <Text style={styles.header}>{editing ? 'Редактировать событие' : 'Создать событие'}</Text>
+        <SafeAreaView style={styles.container}>
+            <View style={styles.container}>
+                <Text style={styles.header}>{editing ? 'Редактировать событие' : 'Создать событие'}</Text>
 
-            <Text style={styles.label}>Название события:</Text>
-            <TextInput
-                style={styles.input}
-                placeholder="Введите название"
-                value={title}
-                onChangeText={setTitle}
-            />
+                <Text style={styles.label}>Название события:</Text>
+                <TextInput
+                    style={styles.input}
+                    placeholder="Введите название"
+                    placeholderTextColor="#8E8E93"
+                    value={title}
+                    onChangeText={setTitle}
+                />
 
-            <Text style={styles.label}>Описание:</Text>
-            <TextInput
-                style={[styles.input, { height: 100 }]}
-                placeholder="Введите описание задачи"
-                value={description}
-                onChangeText={setDescription}
-                multiline
-            />
+                <Text style={styles.label}>Описание:</Text>
+                <TextInput
+                    style={[styles.input, { height: 100 }]}
+                    placeholder="Введите описание задачи"
+                    placeholderTextColor="#8E8E93"
+                    value={description}
+                    onChangeText={setDescription}
+                    multiline
+                />
 
-            <View style={styles.switchContainer}>
-                <Text style={styles.label}>Событие на весь день:</Text>
-                <TouchableOpacity
-                    style={[styles.toggleButton, { backgroundColor: allDay ? '#007AFF' : '#ccc' }]}
-                    onPress={() => setAllDay((prev: any) => !prev)}
-                >
-                    <Text style={styles.toggleButtonText}>{allDay ? 'Да' : 'Нет'}</Text>
-                </TouchableOpacity>
-            </View>
-
-            <Text style={styles.sectionHeader}>Начало события</Text>
-            <TouchableOpacity style={styles.pickerField} onPress={() => showPicker('start')}>
-                <Text style={styles.pickerText}>
-                    {allDay
-                        ? `Дата: ${formatDate(startDateTime)}`
-                        : `Дата и время: ${formatDate(startDateTime)} ${formatTime(startDateTime)}`}
-                </Text>
-            </TouchableOpacity>
-
-            <Text style={styles.sectionHeader}>Окончание события</Text>
-            <TouchableOpacity style={styles.pickerField} onPress={() => showPicker('end')}>
-                <Text style={styles.pickerText}>
-                    {allDay
-                        ? `Дата: ${formatDate(endDateTime)}`
-                        : `Дата и время: ${formatDate(endDateTime)} ${formatTime(endDateTime)}`}
-                </Text>
-            </TouchableOpacity>
-
-            <DateTimePickerModal
-                isVisible={isPickerVisible}
-                mode={allDay ? 'date' : 'datetime'}
-                date={currentPicker === 'start' ? startDateTime : endDateTime}
-                onConfirm={handleConfirm}
-                onCancel={hidePicker}
-            />
-
-            <Text style={styles.label}>Тег:</Text>
-            <TextInput
-                style={styles.input}
-                placeholder="Например, Работа"
-                value={tag}
-                onChangeText={setTag}
-            />
-
-            <Text style={styles.label}>Цвет метки:</Text>
-            <View style={styles.colorsContainer}>
-                {['#007AFF', '#FF9500', '#34C759', '#FF3B30', '#AF52DE'].map((c) => (
+                <View style={styles.switchContainer}>
+                    <Text style={styles.label}>Событие на весь день:</Text>
                     <TouchableOpacity
-                        key={c}
-                        style={[styles.colorCircle, { backgroundColor: c, borderWidth: color === c ? 3 : 0 }]}
-                        onPress={() => setColor(c)}
-                    />
-                ))}
+                        style={[styles.toggleButton, { backgroundColor: allDay ? '#007AFF' : '#ccc' }]}
+                        onPress={() => setAllDay((prev: any) => !prev)}
+                    >
+                        <Text style={styles.toggleButtonText}>{allDay ? 'Да' : 'Нет'}</Text>
+                    </TouchableOpacity>
+                </View>
+
+                <Text style={styles.sectionHeader}>Начало события</Text>
+                <TouchableOpacity style={styles.pickerField} onPress={() => showPicker('start')}>
+                    <Text style={styles.pickerText}>
+                        {allDay
+                            ? `Дата: ${formatDate(startDateTime)}`
+                            : `Дата и время: ${formatDate(startDateTime)} ${formatTime(startDateTime)}`}
+                    </Text>
+                </TouchableOpacity>
+
+                <Text style={styles.sectionHeader}>Окончание события</Text>
+                <TouchableOpacity style={styles.pickerField} onPress={() => showPicker('end')}>
+                    <Text style={styles.pickerText}>
+                        {allDay
+                            ? `Дата: ${formatDate(endDateTime)}`
+                            : `Дата и время: ${formatDate(endDateTime)} ${formatTime(endDateTime)}`}
+                    </Text>
+                </TouchableOpacity>
+
+                <DateTimePickerModal
+                    isVisible={isPickerVisible}
+                    mode={allDay ? 'date' : 'datetime'}
+                    date={currentPicker === 'start' ? startDateTime : endDateTime}
+                    onConfirm={handleConfirm}
+                    onCancel={hidePicker}
+                />
+
+                <Text style={styles.label}>Тег:</Text>
+                <TextInput
+                    style={styles.input}
+                    placeholder="Например, Работа"
+                    placeholderTextColor="#8E8E93"
+                    value={tag}
+                    onChangeText={setTag}
+                />
+
+                <Text style={styles.label}>Цвет метки:</Text>
+                <View style={styles.colorsContainer}>
+                    {['#007AFF', '#FF9500', '#34C759', '#FF3B30', '#AF52DE'].map((c) => (
+                        <TouchableOpacity
+                            key={c}
+                            style={[styles.colorCircle, { backgroundColor: c, borderWidth: color === c ? 3 : 0 }]}
+                            onPress={() => setColor(c)}
+                        />
+                    ))}
+                </View>
+
+                <View style={styles.buttonRow}>
+                    <TouchableOpacity style={[styles.button, styles.saveButton]} onPress={handleSave}>
+                        <Text style={styles.saveButtonText}>{editing ? 'Сохранить' : 'Создать'}</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity style={[styles.button, styles.cancelButton]} onPress={handleCancel}>
+                        <Text style={styles.cancelButtonText}>Отмена</Text>
+                    </TouchableOpacity>
+                    {editing &&
+                        <TouchableOpacity style={[styles.button, styles.deleteButton]} onPress={handleDelete}>
+                            <Text style={styles.deleteButtonText}>Удалить</Text>
+                        </TouchableOpacity>
+                    }
+                </View>
             </View>
 
-            <View style={styles.buttonRow}>
-                <TouchableOpacity style={[styles.button, styles.saveButton]} onPress={handleSave}>
-                    <Text style={styles.saveButtonText}>{editing ? 'Сохранить' : 'Создать'}</Text>
-                </TouchableOpacity>
-                <TouchableOpacity style={[styles.button, styles.cancelButton]} onPress={handleCancel}>
-                    <Text style={styles.cancelButtonText}>Отмена</Text>
-                </TouchableOpacity>
-                {editing &&
-                    <TouchableOpacity style={[styles.button, styles.deleteButton]} onPress={handleDelete}>
-                        <Text style={styles.deleteButtonText}>Удалить</Text>
-                    </TouchableOpacity>
-                }
-            </View>
-        </ScrollView>
+        </SafeAreaView>
+
     );
 }
 
 const styles = StyleSheet.create({
-    container: { flex: 1, padding: 20, backgroundColor: '#fff' },
+    container: { flex: 1, padding: 20, backgroundColor: '#fff'},
     header: { fontSize: 24, fontWeight: 'bold', marginBottom: 16, alignSelf: 'center' },
     label: { fontSize: 16, marginVertical: 8 },
     input: {

@@ -74,6 +74,7 @@ const styles = StyleSheet.create({
     profileContainer: {
         padding: 20,
         backgroundColor: '#007AFF',
+        borderRadius: 8,
     },
     profileName: {
         color: '#fff',

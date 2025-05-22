@@ -18,7 +18,7 @@ export default function ProtectedLayout() {
     return (
         <EventProvider>
             <Drawer
-                screenOptions={{headerShown: true}}
+                screenOptions={{headerShown: false}}
                 drawerContent={(props) => <DrawerContent {...props} />}
             >
                 <Drawer.Screen name="index" options={{title: 'Месяц'}}/>
