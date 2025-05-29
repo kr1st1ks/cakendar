@@ -21,28 +21,27 @@ export default function EventListScreen() {
 
         <SafeAreaView style={styles.container}>
             <StatusBar barStyle="dark-content" />
-            <View >
-                <Text style={styles.header}>Общий список событий</Text>
-                {events.length === 0 ? (
-                    <Text style={styles.noEventsText}>Событий пока нет</Text>
-                ) : (
-                    <FlatList
-                        data={events}
-                        keyExtractor={(item) => item.id}
-                        renderItem={({item}) => (
-                            <TouchableOpacity style={styles.eventItem}
-                                              onPress={() => router.push(`/event-form/${item.id}`)}
-                                              onLongPress={() => handleDeleteEvent(item.id)}
-                            >
-                                <Text style={styles.eventTitle}>{item.title}</Text>
-                                <Text
-                                    style={styles.eventDates}>{item.startDate} {item.endDate ? `- ${item.endDate}` : ''}</Text>
-                            </TouchableOpacity>
-                        )}
-                    />
+            <FlatList
+                data={events}
+                keyExtractor={(item) => item.id}
+                contentContainerStyle={{ paddingBottom: 40 }}
+                ListHeaderComponent={
+                    <>
+                        <Text style={styles.header}>Список событий</Text>
+                        {events.length === 0 && <Text style={styles.noEventsText}>Событий пока нет</Text>}
+                    </>
+                }
+                renderItem={({item}) => (
+                    <TouchableOpacity style={styles.eventItem}
+                                      onPress={() => router.push(`/event-form/${item.id}`)}
+                                      onLongPress={() => handleDeleteEvent(item.id)}
+                    >
+                        <Text style={styles.eventTitle}>{item.title}</Text>
+                        <Text
+                            style={styles.eventDates}>{item.startDate} {item.endDate ? `- ${item.endDate}` : ''}</Text>
+                    </TouchableOpacity>
                 )}
-
-            </View>
+            />
 
             <FAB onPress={() => router.push(`/(app)/event-form/new`)}/>
         </SafeAreaView>

@@ -140,8 +140,8 @@ export default function EventFormScreen() {
     };
 
     return (
-        <SafeAreaView style={styles.container}>
-            <View style={styles.container}>
+        <SafeAreaView style={{flex: 1, backgroundColor: '#fff'}}>
+            <ScrollView contentContainerStyle={styles.scrollContainer}>
                 <Text style={styles.header}>{editing ? 'Редактировать событие' : 'Создать событие'}</Text>
 
                 <Text style={styles.label}>Название события:</Text>
@@ -232,8 +232,7 @@ export default function EventFormScreen() {
                         </TouchableOpacity>
                     }
                 </View>
-            </View>
-
+            </ScrollView>
         </SafeAreaView>
 
     );
@@ -262,4 +261,10 @@ const styles = StyleSheet.create({
     cancelButtonText: { color: '#333', fontWeight: 'bold', fontSize: 16 },
     deleteButton: { backgroundColor: '#FF3B30' },
     deleteButtonText: { color: '#fff', fontWeight: 'bold', fontSize: 16 },
+    scrollContainer: {
+        padding: 20,
+        backgroundColor: '#fff',
+        flexGrow: 1,
+        justifyContent: 'flex-start'
+    },
 });

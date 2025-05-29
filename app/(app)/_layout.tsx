@@ -5,6 +5,8 @@ import {Redirect} from 'expo-router';
 import {useAuth} from '../../contexts/AuthContext';
 import DrawerContent from './DrawerContent';
 import {EventProvider} from "../../contexts/EventContext";
+import { TouchableOpacity } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 
 export default function ProtectedLayout() {
     const {user, isLoading} = useAuth();
@@ -18,7 +20,14 @@ export default function ProtectedLayout() {
     return (
         <EventProvider>
             <Drawer
-                screenOptions={{headerShown: false}}
+                screenOptions={({ navigation }) => ({
+                    headerShown: false,
+                    headerLeft: ({ tintColor }) => (
+                        <TouchableOpacity onPress={() => navigation.openDrawer()} style={{ marginLeft: 16 }}>
+                            <Ionicons name="menu" size={28} color={tintColor || "#007AFF"} />
+                        </TouchableOpacity>
+                    ),
+                })}
                 drawerContent={(props) => <DrawerContent {...props} />}
             >
                 <Drawer.Screen name="index" options={{title: 'Месяц'}}/>
