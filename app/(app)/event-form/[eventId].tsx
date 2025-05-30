@@ -38,6 +38,8 @@ export default function EventFormScreen() {
     const [isPickerVisible, setPickerVisible] = useState(false);
     const [currentPicker, setCurrentPicker] = useState<'start' | 'end' | null>(null);
 
+
+
     const showPicker = (picker: 'start' | 'end') => {
         setCurrentPicker(picker);
         setPickerVisible(true);
@@ -83,6 +85,9 @@ export default function EventFormScreen() {
         // eslint-disable-next-line
     }, [eventId, events]);
 
+    // Функция для проверки наложения и сохранения события
+
+
     const handleSave = async () => {
         if (!title.trim()) {
             Alert.alert('Ошибка', 'Введите название события');
@@ -114,16 +119,41 @@ export default function EventFormScreen() {
             userId: user?.uid || '',
         };
 
-        try {
-            if (editing && editingEvent) {
-                await updateEvent({ ...newEvent, id: editingEvent.id });
-            } else {
-                await addEvent({ ...newEvent, id: '', userId: user?.uid || '' });
+        const proceedSave = async (eventData: typeof newEvent) => {
+            try {
+                if (editing && editingEvent) {
+                    await updateEvent({ ...eventData, id: editingEvent.id });
+                } else {
+                    await addEvent({ ...eventData, id: '', userId: user?.uid || '' });
+                }
+                router.back();
+            } catch (e) {
+                Alert.alert('Ошибка', 'Не удалось сохранить событие. Попробуйте еще раз.');
             }
-            router.back();
-        } catch (e) {
-            Alert.alert('Ошибка', 'Не удалось сохранить событие. Попробуйте еще раз.');
+        };
+
+        // Проверка на наложение событий
+        const newStart = new Date(`${newEvent.startDate}T${newEvent.startTime || '00:00'}`);
+        const newEnd = new Date(`${newEvent.endDate}T${newEvent.endTime || (newEvent.allDay ? '23:59' : newEvent.startTime || '00:00')}`);
+        const overlap = events.find(ev => ev.id !== newEvent.id && (() => {
+            const evStart = new Date(`${ev.startDate}T${ev.startTime || '00:00'}`);
+            const evEnd = new Date(`${ev.endDate}T${ev.endTime || (ev.allDay ? '23:59' : ev.startTime || '00:00')}`);
+            return newStart < evEnd && evStart < newEnd;
+        })());
+        if (overlap) {
+            Alert.alert(
+                'Конфликт событий',
+                `Событие пересекается с "${overlap.title}". Создать все равно?`,
+                [
+                    { text: 'Отмена', style: 'cancel' },
+                    { text: 'Создать', onPress: () => proceedSave(newEvent) }
+                ]
+            );
+            return;
         }
+
+        // Если пересечений нет, сохраняем сразу
+        proceedSave(newEvent);
     };
 
     const handleCancel = () => router.back();
